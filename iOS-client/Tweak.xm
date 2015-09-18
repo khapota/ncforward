@@ -92,23 +92,20 @@ static NFSending *_sharedInstance = nil;
 }
 @end
 
-
-
-
 %hook SBBulletinBannerController
-- (void)observer:(id)observer addBulletin:(BBBulletin *)bulletin forFeed:(NSUInteger)feed {
-	NSString *BulletinMessageToSend = @"NCFV1_PV1"; //NCF: magic. V1: ncforward version number. P:magic. V1: protocol version number.
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.sectionDisplayName];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.topic];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.sectionID];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.title];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.subtitle];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.message];
-	BulletinMessageToSend = [BulletinMessageToSend addToNFString:[bulletin.date description]];
-	
-	[[NFSending sharedInstance] sendMessage:BulletinMessageToSend];
-	
-	%orig;
+-(void)observer:(id)observer addBulletin:(BBBulletin *)bulletin forFeed:(unsigned)feed playLightsAndSirens:(BOOL)sirens withReply:(id)reply {
+        NSString *BulletinMessageToSend = @"NCFV1_PV1"; //NCF: magic. V1: ncforward version number. P:magic. V1: protocol version number.
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.sectionDisplayName];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.topic];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.sectionID];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.title];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.subtitle];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:bulletin.content.message];
+        BulletinMessageToSend = [BulletinMessageToSend addToNFString:[bulletin.date description]];
+
+        [[NFSending sharedInstance] sendMessage:BulletinMessageToSend];
+
+        %orig;
 }
 %end
 

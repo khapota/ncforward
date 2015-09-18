@@ -1,0 +1,7 @@
+.theos
+theos
+obj
+ncfprefs/theos
+ncfprefs/.theos
+*.deb
+_/
