@@ -2,6 +2,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <RNEncryptor.h>
+#include <RNCryptor.h>
 
 
 //Some headers which might be important

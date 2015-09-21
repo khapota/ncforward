@@ -8,8 +8,10 @@ include theos/makefiles/common.mk
 
 TWEAK_NAME = NCForward
 NCForward_FILES = Tweak.xm
+NCForward_LIBRARIES = RNCryptor
+#NCForward_LDFLAGS += -F./
+#NCForward_FRAMEWORKS = UIKit
 #NCForward_PRIVATE_FRAMEWORKS = BulletinBoard
-#NCForward_FRAMEWORKS = CoreFoundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

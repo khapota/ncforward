@@ -1,4 +1,5 @@
 #import "Tweak.h"
+#import <Foundation/Foundation.h>
 
 %group main
 //Some weird callback method...
@@ -22,6 +23,24 @@ static void socketCallback(CFSocketRef cfSocket, CFSocketCallBackType type, CFDa
 }
 @end
 
+//Encrypt data via RNCryptor library
+@interface NSData (NCForwardCategory)
++(NSData *) doEncrypt: (NSData *)data withPassword: (NSString *)aPassword;
+@end
+
+@implementation NSData (NCForwardCategory)
++(NSData *) doEncrypt: (NSData *) originData withPassword: (NSString *) aPassword {
+  //NSString *aPassword = @"khanhpro";
+  //NSData *data = [@"Data" dataUsingEncoding:NSUTF8StringEncoding];
+  NSError *error;
+  NSData *encryptedData = [RNEncryptor encryptData:originData
+                                      withSettings:kRNCryptorAES256Settings
+                                          password:aPassword
+                                             error:&error];
+  return encryptedData;
+  //NSLog(@"%@", encryptedData);
+}
+@end
 
 //The class for sending (and recieving) NCForward messages
 @class NFSending;
@@ -46,9 +65,9 @@ static NFSending *_sharedInstance = nil;
 	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0ul);
 	dispatch_async(queue, ^{ //Dispatch asynchronous to not block everything
 		CFSocketContext socketContext = {0, self, NULL, NULL, NULL};
-		
+
 		CFSocketRef socket = CFSocketCreate(kCFAllocatorDefault, 0, SOCK_DGRAM, IPPROTO_UDP, kCFSocketNoCallBack, (CFSocketCallBack)socketCallback, &socketContext );
-		
+
 		if (socket) {
 			NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/org.h6nry.ncforward.prefs.plist"];
 			//NSLog(@"-----prefs:%@         %s",prefs, (const char*)[[prefs objectForKey:@"ip"] cStringUsingEncoding:NSASCIIStringEncoding]);
@@ -61,19 +80,26 @@ static NFSending *_sharedInstance = nil;
 				//NSLog(@"NCForward: No IP specified. Using 255.255.255.255");
 				ipp = @"255.255.255.255";
 			}
-			
+
 			struct sockaddr_in addr; //create  structure of type sockaddr_in named addr
 			memset(&addr, 0, sizeof(addr));
 			addr.sin_len = sizeof(addr);
 			addr.sin_family = AF_INET;
 			addr.sin_port = htons(3156); //port
 			inet_aton([ipp cStringUsingEncoding:NSASCIIStringEncoding], &addr.sin_addr); //ip adress vllt auch 255.255.255.255 ??? 192.168.0.255
-			
+
 			CFSocketConnectToAddress(socket, CFDataCreate(kCFAllocatorDefault, (const UInt8*)&addr, sizeof(addr)), 0.5);
 
-			//const char* messagec = [message cStringUsingEncoding:NSUTF8StringEncoding];
-			const char* messagec = (const char*)[message dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
-			//NSLog(@"-------%s",messagec);
+			//const char* messagec = (const char*)[message dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
+			//NSLog(@"NCForward: %@", message);
+      NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
+      NSString *password = @"khanhpro";
+      NSData *encryptedData = [NSData doEncrypt: messageData withPassword: password];
+      NSString *base64EncryptedData = [encryptedData base64EncodedStringWithOptions:0];
+			//NSLog(@"NCForward: %@", encryptedData);
+			//NSLog(@"NCForward: %@", base64EncryptedData);
+			//const char* messagec = (const char*)[base64EncryptedData bytes];
+			const char* messagec = (const char*)[base64EncryptedData dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
 			CFDataRef Data = CFDataCreate(kCFAllocatorDefault, (const UInt8*)messagec, strlen(messagec));
 			CFSocketError sendError = CFSocketSendData(socket, NULL, Data, 0.5);
 			if (sendError == kCFSocketSuccess) {
@@ -119,9 +145,7 @@ static NFSending *_sharedInstance = nil;
 	BulletinMessageToSend = [BulletinMessageToSend addToNFString:@"Test"];
 	BulletinMessageToSend = [BulletinMessageToSend addToNFString:@"Test"];
 	BulletinMessageToSend = [BulletinMessageToSend addToNFString:@"Test"];
-	
 	[[NFSending sharedInstance] sendMessage:BulletinMessageToSend];
-	
 	return nil;
 }
 %end*/ //test and debug stuff!
@@ -133,3 +157,4 @@ static NFSending *_sharedInstance = nil;
 		%init(main);
 	}
 }
+
