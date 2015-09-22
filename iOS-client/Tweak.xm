@@ -9,6 +9,7 @@ NSString *password;
 NSString *ipp;
 int needupdate = 0;
 
+//Load preference from iOS Preference plist
 void loadSettings2(void) {
   if (preferences) {
     preferences = nil;
@@ -48,6 +49,7 @@ static void socketCallback(CFSocketRef cfSocket, CFSocketCallBackType type, CFDa
 +(NSData *) doEncrypt: (NSData *)data withPassword: (NSString *)aPassword;
 @end
 
+//Encrypt data with RNCryptor
 @implementation NSData (NCForwardCategory)
 +(NSData *) doEncrypt: (NSData *) originData withPassword: (NSString *) aPassword {
   //NSString *aPassword = @"khanhpro";
@@ -116,7 +118,7 @@ static NFSending *_sharedInstance = nil;
 
 			CFSocketConnectToAddress(socket, CFDataCreate(kCFAllocatorDefault, (const UInt8*)&addr, sizeof(addr)), 0.5);
 
-      if (encryptedEnabled == TRUE) {
+      if (encryptedEnabled) {
         //NSLog(@"NCForward: %@", message);
         NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
         //NSString *password = @"khanhpro";
@@ -200,6 +202,7 @@ void loadSettings(void) {
 }
 
 %ctor {
+  //Add Notification listener for Preference and NotificationCallback
   CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                   NULL,
                                   (CFNotificationCallback)&loadSettings,
@@ -213,6 +216,7 @@ void loadSettings(void) {
     CFSTR("org.h6nry.ncforward.prefs.settingschanged"),
     NULL, CFNotificationSuspensionBehaviorCoalesce);
   */
+  //Load current setting when reload this tweak
   loadSettings2();
 	@autoreleasepool {
 		%init(main);

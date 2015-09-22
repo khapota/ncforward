@@ -1,10 +1,14 @@
 # NCForward
 ## Description
-NCForward lets you forward your iOS notifications to ANY other device in your local network (LAN/WLAN). Currently, Windows is supported, Mac and Linux are not.
+NCForward lets you forward your iOS notifications to network. IP address can be set via Prefenrence. Currently, Windows is supported, Mac and Linux are not.
 You will need to have a Client and a server of your choice (not yet :P) running in the same local network.
 
 ## Further information
-Look here for anything else: **http://h6nry.github.io/ncforward.html**
+Look here for anything else: http://h6nry.github.io/ncforward.html
+
+## Changed
+* Added encrypt option with: https://github.com/RNCryptor/RNCryptor
+* Only load setting when changed
 
 ## License
 Do what you want with it, just email me if you are going to publish parts of this.
