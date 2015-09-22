@@ -1,6 +1,26 @@
 #import "Tweak.h"
 #import <Foundation/Foundation.h>
 
+#define PLIST_PATH [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.h6nry.ncforward.prefs.plist"]
+
+NSDictionary *preferences;
+BOOL encryptedEnabled;
+NSString *password;
+NSString *ipp;
+int needupdate = 0;
+
+void loadSettings2(void) {
+  if (preferences) {
+    preferences = nil;
+  }
+  preferences = [NSDictionary dictionaryWithContentsOfFile:PLIST_PATH];
+  ipp = [preferences objectForKey:@"ip"] ? [preferences objectForKey:@"ip"] : @"255.255.255.255";
+  encryptedEnabled = [preferences objectForKey:@"encrypt"] ? [[preferences objectForKey:@"encrypt"] boolValue] : FALSE;
+  password = [preferences objectForKey:@"secretKey"] ? [preferences objectForKey:@"secretKey"] : @"khapota";
+  //NSLog(@"ncforward - %@, %d, %@", ipp, encryptedEnabled, password);
+}
+
+
 %group main
 //Some weird callback method...
 static void socketCallback(CFSocketRef cfSocket, CFSocketCallBackType type, CFDataRef address, const void *data, void *userInfo) {
@@ -68,18 +88,24 @@ static NFSending *_sharedInstance = nil;
 
 		CFSocketRef socket = CFSocketCreate(kCFAllocatorDefault, 0, SOCK_DGRAM, IPPROTO_UDP, kCFSocketNoCallBack, (CFSocketCallBack)socketCallback, &socketContext );
 
+    const char* messagec = nil;
+    if (needupdate) {
+      loadSettings2();
+    }
 		if (socket) {
-			NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/org.h6nry.ncforward.prefs.plist"];
+			//NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/org.h6nry.ncforward.prefs.plist"];
 			//NSLog(@"-----prefs:%@         %s",prefs, (const char*)[[prefs objectForKey:@"ip"] cStringUsingEncoding:NSASCIIStringEncoding]);
 			int yes = 1;
 			int setSockResult = setsockopt(CFSocketGetNative(socket), SOL_SOCKET, SO_BROADCAST, (void *)&yes, sizeof(yes));
 
 			if(setSockResult < 0) NSLog(@"NCForward: Could not setsockopt for broadcast");
-			NSString* ipp = [prefs objectForKey:@"ip"];
+			//NSString* ipp = [prefs objectForKey:@"ip"];
+      /*
 			if (prefs == NULL || ipp == NULL || [ipp isEqualToString:@""]) {
 				//NSLog(@"NCForward: No IP specified. Using 255.255.255.255");
 				ipp = @"255.255.255.255";
 			}
+      */
 
 			struct sockaddr_in addr; //create  structure of type sockaddr_in named addr
 			memset(&addr, 0, sizeof(addr));
@@ -90,16 +116,19 @@ static NFSending *_sharedInstance = nil;
 
 			CFSocketConnectToAddress(socket, CFDataCreate(kCFAllocatorDefault, (const UInt8*)&addr, sizeof(addr)), 0.5);
 
-			//const char* messagec = (const char*)[message dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
-			//NSLog(@"NCForward: %@", message);
-      NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
-      NSString *password = @"khanhpro";
-      NSData *encryptedData = [NSData doEncrypt: messageData withPassword: password];
-      NSString *base64EncryptedData = [encryptedData base64EncodedStringWithOptions:0];
-			//NSLog(@"NCForward: %@", encryptedData);
-			//NSLog(@"NCForward: %@", base64EncryptedData);
-			//const char* messagec = (const char*)[base64EncryptedData bytes];
-			const char* messagec = (const char*)[base64EncryptedData dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
+      if (encryptedEnabled == TRUE) {
+        //NSLog(@"NCForward: %@", message);
+        NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
+        //NSString *password = @"khanhpro";
+        NSData *encryptedData = [NSData doEncrypt: messageData withPassword: password];
+        NSString *base64EncryptedData = [encryptedData base64EncodedStringWithOptions:0];
+        //NSLog(@"NCForward: %@", encryptedData);
+        //NSLog(@"NCForward: %@", base64EncryptedData);
+        //const char* messagec = (const char*)[base64EncryptedData bytes];
+        messagec = (const char*)[base64EncryptedData dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
+      } else {
+        messagec = (const char*)[message dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES].bytes;
+      }
 			CFDataRef Data = CFDataCreate(kCFAllocatorDefault, (const UInt8*)messagec, strlen(messagec));
 			CFSocketError sendError = CFSocketSendData(socket, NULL, Data, 0.5);
 			if (sendError == kCFSocketSuccess) {
@@ -152,7 +181,39 @@ static NFSending *_sharedInstance = nil;
 
 %end
 
+void loadSettings(void) {
+  needupdate = 1;
+/*
+  int64_t delayInSeconds = 2;
+  dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+  dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+    if (preferences) {
+      preferences = nil;
+    }
+    preferences = [NSDictionary dictionaryWithContentsOfFile:PLIST_PATH];
+    ipp = [preferences objectForKey:@"ip"] ? [preferences objectForKey:@"ip"] : @"255.255.255.255";
+    encryptedEnabled = [preferences objectForKey:@"encrypt"] ? [[preferences objectForKey:@"encrypt"] boolValue] : FALSE;
+    password = [preferences objectForKey:@"secretKey"] ? [preferences objectForKey:@"secretKey"] : @"khapota";
+    NSLog(@"ncforward - %@, %d, %@", ipp, encryptedEnabled, password);
+  });
+*/
+}
+
 %ctor {
+  CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                  NULL,
+                                  (CFNotificationCallback)&loadSettings,
+                                  CFSTR("org.h6nry.ncforward.prefs.settingschanged"),
+                                  NULL,
+                                  CFNotificationSuspensionBehaviorDeliverImmediately);
+  /*
+  CFNotificationCenterAddObserver(
+    CFNotificationCenterGetDarwinNotifyCenter(), NULL,
+    (CFNotificationCallback)&loadSettings,
+    CFSTR("org.h6nry.ncforward.prefs.settingschanged"),
+    NULL, CFNotificationSuspensionBehaviorCoalesce);
+  */
+  loadSettings2();
 	@autoreleasepool {
 		%init(main);
 	}

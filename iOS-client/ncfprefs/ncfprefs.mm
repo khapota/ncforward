@@ -19,7 +19,7 @@
 //Enable secret cell if turn on
 - (void)enable: (NSNumber *)enabled forSpecifier: (PSSpecifier *)spec {
   [self setPreferenceValue:enabled specifier:spec];
-  [[NSUserDefaults standardUserDefaults] synchronize];
+  //[[NSUserDefaults standardUserDefaults] synchronize];
   [((PSSpecifier *)[self specifierForID:@"secretkey"]) setProperty:@(([enabled intValue] == 1)) forKey:@"enabled"];
   [self reloadSpecifierID:@"secretkey"];
 }
